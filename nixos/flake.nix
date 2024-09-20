@@ -2,34 +2,34 @@
   description = "Homelab NixOS Flake";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
-    # Disko
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, disko, ... }@inputs: let
+  outputs = { self, nixpkgs, disko, ... }@inputs:
+  let
     nodes = [
-      "homelab-0"
-      "homelab-1"
-      "homelab-2"
+      {
+        name = "gitlab-runner";
+        hostname = "gitlab-runner-nix";
+        machine = "gitlab-runner";
+      }
     ];
   in {
-    nixosConfigurations = builtins.listToAttrs (map (name: {
-	    name = name;
+    nixosConfigurations = builtins.listToAttrs (map (node: {
+	    name = node.name;
 	    value = nixpkgs.lib.nixosSystem {
-     	    specialArgs = {
-            meta = { hostname = name; };
-          };
-          system = "x86_64-linux";
-          modules = [
-              # Modules
-	            disko.nixosModules.disko
-	            ./hardware-configuration.nix
-	            ./disko-config.nix
-	            ./configuration.nix
-	          ];
+        specialArgs = {
+          meta = node;
         };
+        system = "x86_64-linux";
+        modules = [
+          disko.nixosModules.disko
+          ./disk.nix
+          ./configuration.nix
+        ];
+      };
     }) nodes);
   };
 }
